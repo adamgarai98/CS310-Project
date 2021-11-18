@@ -1,76 +1,87 @@
-breed [ nutrients nutrient ]
-patches-own [ liviness ]
+globals [rule-set original-angle]
+turtles-own [len]
 
-to setup
-  ca
-  create-turtles num-hyphae [
-    setxy random-xcor min-pycor set heading 0 live
-    set color white set size 2
+to go
+  ask turtles [ run rule-set ]
+  tick
+end
+
+
+to setup-L-one
+  clear-all
+  set original-angle 0
+  repeat 7 [
+  create-turtles 1 [
+    set color white
+    setxy init-x init-y
+    set heading original-angle
+    set original-angle original-angle + 50
+    set len 4
+    pen-down
+    ]
   ]
   reset-ticks
+  set rule-set "L-one"
 end
 
-to setup-nutrients
-	create-turtles 1000 [
-    set breed nutrients
-    set color blue set shape "circle"
-    setxy random-xcor min-pycor set heading 0
-  ]
-end
-
-to grow
-  ask turtles [ wiggle fd 1 live ]
-  if remainder ticks branch-time = 0 [ branch ]
-  tick
-end
-
-to wiggle
-  right random wiggle-angle
-  left random wiggle-angle
-end
-
-to live
-  set liviness liviness + 1
-  set pcolor white
-end
-
-to branch
-  ask n-of random num-hyphae turtles [
-    hatch 1 [
-      ifelse random-float 1.0 < 0.5 [left 45][right 45]
+to setup-L-two
+  clear-all
+  repeat 7 [
+  create-turtles 1 [
+    set color white
+    setxy init-x init-y
+    set heading random 360
+    set len 4
+    pen-down
     ]
   ]
+  reset-ticks
+  set rule-set "L-two"
 end
 
-to flow
-	ask nutrients [
-   cross-check
-    if patch-ahead 1 != NOBODY [
-      ifelse [ liviness ] of patch-ahead 1 > 0 [
-     	fd 1 pd][
-      right random 45
-      left random 45
-      fd 0.1
-    	]
-    ]
-  ]
-  tick
+to L-one
+  ;set len len / 1.22
+  fd len
+  rt 15
+  fd len
+  hatch 1
+  skipb len
+  lt 30
+  fd len
+  hatch 1
+  die
 end
 
-to cross-check
-	move-to patch-here
-  let forward-neighbours patches in-cone 10 60
-  face max-one-of forward-neighbours [ liviness ]
+to L-two
+  ;set len len / 1.22
+  fd len
+  rt 15 + random 75
+  fd len
+  hatch 1
+  skipb len
+  lt 15 + random 75
+  fd len
+  hatch 1
+  die
 end
+
+to skip [steps]
+  pen-up fd steps pen-down
+end
+
+to skipb [steps]
+  pen-up bk steps pen-down
+end
+
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+287
 10
-892
-693
+898
+622
 -1
 -1
-2.0
+3.0
 1
 10
 1
@@ -80,102 +91,53 @@ GRAPHICS-WINDOW
 0
 0
 1
--168
-168
--168
-168
-1
-1
+-100
+100
+-100
+100
+0
+0
 1
 ticks
 30.0
 
-BUTTON
-10
-24
-180
-57
-NIL
-setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
 SLIDER
+6
 10
-75
-180
-108
-num-hyphae
-num-hyphae
-0
+121
+43
+init-x
+init-x
+-100
 100
-10.0
-1
-1
-NIL
-HORIZONTAL
-
-BUTTON
-4
-143
-179
-208
-NIL
-Grow
-T
-1
-T
-OBSERVER
-NIL
-G
-NIL
-NIL
-1
-
-SLIDER
-0
-225
-170
-258
-wiggle-angle
-wiggle-angle
-0
-10
-5.0
+0.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-0
-280
-170
-313
-branch-time
-branch-time
-0
-10
-5.0
+139
+11
+267
+44
+init-y
+init-y
+-100
+100
+0.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-5
-330
-105
-370
-NIL
-setup-nutrients
+9
+67
+273
+136
+Setup L-System (Liddell and Hansen)
+setup-L-one
 NIL
 1
 T
@@ -187,12 +149,29 @@ NIL
 1
 
 BUTTON
-20
-395
-134
-432
+8
+150
+274
+228
+Setup L-System Rand Branching (Liddel and Hansen)
+setup-L-two
 NIL
-flow
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+8
+250
+103
+339
+Go
+go
 T
 1
 T
@@ -201,6 +180,33 @@ NIL
 NIL
 NIL
 NIL
+1
+
+BUTTON
+113
+252
+265
+340
+Go once (Recommended)
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+TEXTBOX
+15
+369
+271
+523
+This file uses the L-system designed by Liddel and Hansen with the first option shown as if mycelium was grown on a petri dish, and the second option simulating a more \"natural\" random approach, with a random branching angle between 15 and 90 as said in the paper. Press any of the L-system buttons to setup then press Go once. Press L-system again to reset. Sliders are used to initialise where it starts.\n\nResults are the same as the paper (for the non random one)
+11
+0.0
 1
 
 @#$#@#$#@

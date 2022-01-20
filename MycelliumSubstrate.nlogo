@@ -1,86 +1,124 @@
-globals [rule-set original-angle]
-turtles-own [len]
+globals [ rule-set substrate avg-tip-rate branch-freq k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor]
+;patches-own [ substrate ]
+turtles-own [ startX startY branch-length ]
+patches-own [ quadrant localsubstrate ]
 
 to go
   ask turtles [ run rule-set ]
-  tick
+  if (substrate > 0 ) [ tick ]
 end
 
-
-to setup-L-one
+to setup
   clear-all
-  set original-angle 0
-  ;repeat 7 [
   create-turtles 7 [
-    set color white
-    setxy init-x init-y
-    set heading original-angle
-    set original-angle original-angle + 50
-    set len 4
+    set color 64
+    set size 0
+    setxy 0 0
+    set startX 0
+    set startY 0
+    set heading random 360
     pen-down
-    ]
+  ]
+
+;  ask patches [
+;    set localsubstrate 200000
+;
+;    if ( pxcor > 60 ) and ( pycor > 60 ) [
+;      set pcolor 125
+;    ]
+;    if ( pxcor > 20 ) and ( pxcor <= 60 ) and ( pycor > 60 ) [
+;      set pcolor 125
+;    ]
+;    if ( pxcor > -20 ) and ( pxcor <= 20 ) and ( pycor > 60 ) [
+;      set pcolor 128
+;    ]
+;    if ( pxcor > -60 ) and ( pxcor <= -20 ) and ( pycor > 60 ) [
+;      set pcolor 126
+;    ]
+;    if ( pxcor >= -100 ) and ( pxcor <= -60 ) and ( pycor > 60 ) [
+;      set pcolor 127
+;    ]
+;
+;
+;
+;    if ( pxcor > 60 ) and ( pycor > 20 ) and ( pycor <= 60 ) [
+;      set pcolor 123
+;    ]
+;    if ( pxcor > 20 ) and ( pxcor <= 60 ) and ( pycor > 20 ) and ( pycor <= 60 ) [
+;      set pcolor 122
+;    ]
+;
+;
+;
+;  ]
+
+
+  ;create-turtles 1 [
+  ;  set color lime
+  ;  set size 450
+  ;  setxy 0 0
+  ;  set shape "square"
   ;]
+
+  set substrate 5000000
+  set avg-tip-rate 60
+  set branch-freq 3
+  set k-tip1 0.80
+  set max-ktip 0.155
+  set k-tip2 max-ktip - k-tip1
+  set growth-max 0.05
+  set branch-angle 181
+  set substrate-max 200
+  set total-biomass 0
+  set substrate-factor 0.1 ;Test
+
   reset-ticks
-  set rule-set "L-one"
+  set rule-set "one-quad"
 end
 
-to setup-L-two
-  clear-all
-  repeat 7 [
-  create-turtles 1 [
-    set color white
-    setxy init-x init-y
-    set heading random 360
-    set len 4
-    pen-down
+to one-quad
+  set branch-length calc-length startX startY xcor ycor
+
+  if substrate > 0 [
+    fd extension-rate branch-length
+
+    set branch-length calc-length startX startY xcor ycor
+    set total-biomass ( sum [branch-length] of turtles )
+    set substrate substrate - min list (total-biomass * substrate-factor) substrate
+
+    if ( random 100 ) < branch-freq [
+      hatch 1 [
+        set size 0
+        set color 64
+        set startX xcor
+        set startY ycor
+        set branch-length calc-length startX startY xcor ycor
+        set total-biomass ( sum [branch-length] of turtles ) ; TODO  create quads, current quad, currentquad length, should be able to do
+        set substrate substrate - min list (total-biomass * substrate-factor) substrate
+        ;set color 7
+        ifelse random-float 1.0 < 0.5 [ left random 90 ][ right random 90 ]
+      ]
     ]
   ]
-  reset-ticks
-  set rule-set "L-two"
+
 end
 
-to L-one
-  ;set len len / 1.22
-  fd len
-  rt 15
-  fd len
-  hatch 1 [ set color white ]
-  skipb len
-  lt 30
-  fd len
-  hatch 1
-  die
+to-report extension-rate [ blength ]
+  report ( ( k-tip1 + k-tip2 * ( blength / ( blength + growth-max ) ) ) * ( substrate / ( substrate + substrate-max ) ) )
 end
 
-to L-two
-  ;set len len / 1.22
-  fd len
-  rt 15 + random 75
-  fd len
-  hatch 1
-  skipb len
-  lt 15 + random 75
-  fd len
-  hatch 1
-  die
-end
-
-to skip [steps]
-  pen-up fd steps pen-down
-end
-
-to skipb [steps]
-  pen-up bk steps pen-down
+to-report calc-length [ orig-xcor orig-ycor cur-xcor cur-ycor ]
+  report sqrt ( ( cur-xcor - orig-xcor ) ^ 2  + ( cur-ycor - orig-ycor ) ^ 2 )
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-287
-10
-898
-622
+150
+25
+781
+657
 -1
 -1
-3.0
+4.13
 1
 10
 1
@@ -90,53 +128,23 @@ GRAPHICS-WINDOW
 0
 0
 1
--100
-100
--100
-100
-0
-0
+-75
+75
+-75
+75
+1
+1
 1
 ticks
 30.0
 
-SLIDER
-6
-10
-121
-43
-init-x
-init-x
--100
-100
-0.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-139
-11
-267
-44
-init-y
-init-y
--100
-100
-0.0
-1
-1
-NIL
-HORIZONTAL
-
 BUTTON
-9
-67
-273
-136
-Setup L-System (Liddell and Hansen)
-setup-L-one
+54
+47
+117
+80
+NIL
+setup
 NIL
 1
 T
@@ -148,28 +156,11 @@ NIL
 1
 
 BUTTON
-8
-150
-274
-228
-Setup L-System Rand Branching (Liddel and Hansen)
-setup-L-two
+61
+101
+124
+134
 NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-8
-250
-103
-339
-Go
 go
 T
 1
@@ -181,32 +172,59 @@ NIL
 NIL
 1
 
-BUTTON
-113
-252
-265
-340
-Go once (Recommended)
-go
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-TEXTBOX
-15
-369
-271
-523
-This file uses the L-system designed by Liddel and Hansen with the first option shown as if mycelium was grown on a petri dish, and the second option simulating a more \"natural\" random approach, with a random branching angle between 15 and 90 as said in the paper. Press any of the L-system buttons to setup then press Go once. Press L-system again to reset. Sliders are used to initialise where it starts.\n\nResults are the same as the paper (for the non random one)
-11
+PLOT
+810
+472
+1242
+689
+Mean Branch Length
+Ticks
+Branch Length (um)
 0.0
-1
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot mean [branch-length] of turtles"
+
+PLOT
+801
+29
+1210
+240
+Total Substrate Avaiable
+Ticks
+Substrate (mg/L)
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot substrate"
+
+PLOT
+801
+247
+1221
+460
+Total Biomass
+Ticks
+Biomass
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot total-biomass"
 
 @#$#@#$#@
 ## WHAT IS IT?

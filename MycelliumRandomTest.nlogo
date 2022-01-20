@@ -1,86 +1,128 @@
-globals [rule-set original-angle]
-turtles-own [len]
+breed [ nutrients nutrient ]
+patches-own [ liviness quadrant substrate]
+turtles-own [ startX startY branch-length]
+nutrients-own [ testvar ]
+globals [ color-count ]
+;test
 
-to go
-  ask turtles [ run rule-set ]
+
+to test
+  ask patches with [ pxcor < round (max-pxcor / 2) ] [
+    set quadrant 1
+    set pcolor red
+  ]
+  ask patches [
+    set substrate 9000
+  ]
+end
+
+to test2
+  update-substrate 1
+  print check-quad 2 3
+
+end
+
+to update-substrate [ quad ]
+  ask patches with [ quadrant = quad ] [
+    set substrate substrate - 10
+    set pcolor lime
+    if liviness >= 1 [ set pcolor white ]
+  ]
+end
+
+to-report check-quad [ test-var test-var2 ]
+  report test-var + test-var2
+end
+
+to-report calc-length [ orig-xcor orig-ycor cur-xcor cur-ycor ]
+  report sqrt ( ( cur-xcor - orig-xcor ) ^ 2  + ( cur-ycor - orig-ycor ) ^ 2 )
+  ;report orig-xcor + orig-ycor + cur-xcor + cur-ycor
+end
+
+
+
+to setup
+  clear-all
+  create-turtles num-hyphae [
+    setxy random-xcor min-pycor set heading 0 live
+    set color white set size 2
+    set startX xcor
+    set startY ycor
+  ]
+  set color-count 1
+  reset-ticks
+end
+
+to setup-nutrients
+	create-turtles 1000 [
+    set breed nutrients
+    set color blue set shape "circle"
+    setxy random-xcor min-pycor set heading 0
+  ]
+end
+
+to grow
+  ask turtles [ wiggle fd 1 live ]
+  if remainder ticks branch-time = 0 [ branch ]
+  ask turtles [
+    set branch-length calc-length startX startY xcor ycor
+  ]
   tick
 end
 
-
-to setup-L-one
-  clear-all
-  set original-angle 0
-  ;repeat 7 [
-  create-turtles 7 [
-    set color white
-    setxy init-x init-y
-    set heading original-angle
-    set original-angle original-angle + 50
-    set len 4
-    pen-down
-    ]
-  ;]
-  reset-ticks
-  set rule-set "L-one"
+to wiggle
+  right random wiggle-angle
+  left random wiggle-angle
 end
 
-to setup-L-two
-  clear-all
-  repeat 7 [
-  create-turtles 1 [
-    set color white
-    setxy init-x init-y
-    set heading random 360
-    set len 4
-    pen-down
+to live
+  set liviness liviness + 1
+  set color-count color-count + 1
+  set pcolor white
+end
+
+
+
+
+to branch
+  ask n-of random num-hyphae turtles [
+    hatch 1 [
+      set startX xcor
+      set startY ycor
+      ifelse random-float 1.0 < 0.5 [left 45][right 45]
     ]
   ]
-  reset-ticks
-  set rule-set "L-two"
 end
 
-to L-one
-  ;set len len / 1.22
-  fd len
-  rt 15
-  fd len
-  hatch 1 [ set color white ]
-  skipb len
-  lt 30
-  fd len
-  hatch 1
-  die
+to flow
+	ask nutrients [
+   cross-check
+    if patch-ahead 1 != NOBODY [
+      ifelse [ liviness ] of patch-ahead 1 > 0 [
+     	fd 1 pd][
+      right random 45
+      left random 45
+      fd 0.1
+    	]
+    ]
+  ]
+  tick
 end
 
-to L-two
-  ;set len len / 1.22
-  fd len
-  rt 15 + random 75
-  fd len
-  hatch 1
-  skipb len
-  lt 15 + random 75
-  fd len
-  hatch 1
-  die
-end
-
-to skip [steps]
-  pen-up fd steps pen-down
-end
-
-to skipb [steps]
-  pen-up bk steps pen-down
+to cross-check
+	move-to patch-here
+  let forward-neighbours patches in-cone 10 60
+  face max-one-of forward-neighbours [ liviness ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-287
+221
 10
-898
-622
+755
+545
 -1
 -1
-3.0
+1.561
 1
 10
 1
@@ -90,53 +132,102 @@ GRAPHICS-WINDOW
 0
 0
 1
--100
-100
--100
-100
-0
-0
+-168
+168
+-168
+168
+1
+1
 1
 ticks
 30.0
 
+BUTTON
+13
+147
+183
+180
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
 SLIDER
-6
+13
 10
-121
+183
 43
-init-x
-init-x
--100
+num-hyphae
+num-hyphae
+0
 100
-0.0
+10.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+10
+191
+185
+256
+NIL
+Grow
+T
+1
+T
+OBSERVER
+NIL
+G
+NIL
+NIL
+1
+
+SLIDER
+12
+48
+182
+81
+wiggle-angle
+wiggle-angle
+0
+10
+5.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-139
-11
-267
-44
-init-y
-init-y
--100
-100
-0.0
+14
+87
+184
+120
+branch-time
+branch-time
+0
+10
+5.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-9
-67
-273
-136
-Setup L-System (Liddell and Hansen)
-setup-L-one
+7
+311
+93
+366
+NIL
+setup-nutrients
 NIL
 1
 T
@@ -148,47 +239,13 @@ NIL
 1
 
 BUTTON
-8
-150
-274
-228
-Setup L-System Rand Branching (Liddel and Hansen)
-setup-L-two
+100
+311
+185
+366
 NIL
-1
+flow
 T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-8
-250
-103
-339
-Go
-go
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-113
-252
-265
-340
-Go once (Recommended)
-go
-NIL
 1
 T
 OBSERVER
@@ -199,14 +256,84 @@ NIL
 1
 
 TEXTBOX
-15
-369
-271
-523
-This file uses the L-system designed by Liddel and Hansen with the first option shown as if mycelium was grown on a petri dish, and the second option simulating a more \"natural\" random approach, with a random branching angle between 15 and 90 as said in the paper. Press any of the L-system buttons to setup then press Go once. Press L-system again to reset. Sliders are used to initialise where it starts.\n\nResults are the same as the paper (for the non random one)
+6
+400
+193
+584
+Completely random and non mathematical approach to help me learn NetLogo. Random branching time and angles. Also includes nutrient transport semi randomly (mainly dont for the learning experience) Sliders are self explanataory.\n\nSetup -> Grow -> Stop growth when satisfied -> Setup-nutrients -> Flow
 11
 0.0
 1
+
+BUTTON
+82
+268
+145
+301
+test
+test
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+13
+268
+76
+301
+NIL
+test2
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+147
+642
+347
+792
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot [substrate] of patch 1 1"
+
+PLOT
+480
+642
+680
+792
+plot 2
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot mean [branch-length] of turtles"
 
 @#$#@#$#@
 ## WHAT IS IT?

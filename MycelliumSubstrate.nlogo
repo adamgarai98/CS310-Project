@@ -77,12 +77,12 @@ to setup
 end
 
 to one-quad
-  set branch-length calc-length startX startY xcor ycor
+  set branch-length distancexy startX startY
 
   if substrate > 0 [
     fd extension-rate branch-length
 
-    set branch-length calc-length startX startY xcor ycor
+    set branch-length distancexy startX startY
     set total-biomass ( sum [branch-length] of turtles )
     set substrate substrate - min list (total-biomass * substrate-factor) substrate
 
@@ -92,8 +92,9 @@ to one-quad
         set color 64
         set startX xcor
         set startY ycor
-        set branch-length calc-length startX startY xcor ycor
-        set total-biomass ( sum [branch-length] of turtles ) ; TODO  create quads, current quad, currentquad length, should be able to do
+        set branch-length distancexy startX startY ;Can just use distancexy
+        ;calc-length startX startY xcor ycor
+        set total-biomass ( sum [branch-length] of turtles ) ;
         set substrate substrate - min list (total-biomass * substrate-factor) substrate
         ;set color 7
         ifelse random-float 1.0 < 0.5 [ left random 90 ][ right random 90 ]

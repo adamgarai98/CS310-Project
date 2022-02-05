@@ -1,4 +1,4 @@
-globals [ rule-set substrate avg-tip-rate branch-freq k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor]
+globals [ rule-set substrate avg-tip-rate branch-freq k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor colors]
 ;patches-own [ substrate ]
 turtles-own [ startX startY startZ branch-length ]
 patches-own [ quadrant localsubstrate ]
@@ -11,7 +11,7 @@ end
 to setup
   clear-all
   create-turtles 7 [
-    set color 64
+    set color green
     set size 0
     setxyz 0 0 0
     set startX 0
@@ -33,29 +33,31 @@ to setup
   set substrate-max 200
   set total-biomass 0
   set substrate-factor 0.01 ;Test
+  set colors [ red green blue yellow pink magenta orange lime turquoise cyan sky violet]
 
   reset-ticks
   set rule-set "one-quad"
 end
 
 to one-quad
-  set branch-length distancexyz startX startY startZ
-
+  set branch-length distancexyz-nowrap startX startY startZ
+  if (pxcor < 29.8) and (pxcor > -29.8 ) and (pycor < 29.8) and (pycor > -29.8 ) and (pzcor < 29.8) and (pzcor > -29.8 ) [
   if substrate > 0 [
     fd extension-rate branch-length
 
-    set branch-length distancexyz startX startY startZ
+    set branch-length distancexyz-nowrap startX startY startZ
     set total-biomass ( sum [branch-length] of turtles )
     set substrate substrate - min list (total-biomass * substrate-factor) substrate
 
     if ( random 100 ) < branch-freq [
       hatch 1 [
         set size 0
-        set color 64
+        ;set color one-of colors
+        set color green
         set startX xcor
         set startY ycor
         set startZ zcor
-        set branch-length distancexyz startX startY startZ
+        set branch-length distancexyz-nowrap startX startY startZ
         set total-biomass ( sum [branch-length] of turtles ) ; TODO  create quads, current quad, currentquad length, should be able to do
         set substrate substrate - min list (total-biomass * substrate-factor) substrate
         ;set color 7
@@ -64,13 +66,12 @@ to one-quad
       ]
     ]
   ]
-
+ ]
 end
 
 to-report extension-rate [ blength ]
   report ( ( k-tip1 + k-tip2 * ( blength / ( blength + growth-max ) ) ) * ( substrate / ( substrate + substrate-max ) ) )
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 0

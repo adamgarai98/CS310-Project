@@ -1,45 +1,26 @@
-globals [ rule-set patch-rule-set substrate avg-tip-rate branch-freq k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor local-substrate-start sum-local-substrate substrate-ratio ]
+globals [ rule-set substrate avg-tip-rate branch-freq k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor starting-substrate]
 ;patches-own [ substrate ]
-turtles-own [ startX startY branch-length ]
-patches-own [ quadrant localsubstrate turtles-before ]
+turtles-own [ startX startY branch-length destination arrived visited last-destination]
+patches-own [ quadrant localsubstrate agent-incoming ]
 
 to go
   ask turtles [ run rule-set ]
-  ask turtles [
-    set branch-length distancexy startX startY
+  ;set total-biomass ( sum [branch-length] of turtles )
+  set substrate (sum [localsubstrate] of patches with [pcolor = 125])
+  if ticks = 150 [
+    stop
   ]
-  set total-biomass ( sum [branch-length] of turtles )
-  set substrate substrate - min list (total-biomass * substrate-factor) substrate
-
-
-
-  set sum-local-substrate 0
-  ask patches with [pcolor = 125] [
-    run patch-rule-set
-
-  ]
-  set substrate-ratio ( ( local-substrate-start * 16 ) - sum-local-substrate) / total-biomass
-  ;print "substrate ratio"
-  ;print substrate-ratio
-  ;print "sum local sub"
-  ;print sum-local-substrate
-  ;print "total biomass"
-  ;print total-biomass
-  ;print "sub-start"
-  ;print ( local-substrate-start * 16 )
-
-
-
-
   if (substrate > 0 ) [ tick ]
-  if substrate <= 0 [stop]
 end
 
 to setup
   clear-all
 
-  ask patches [
 
+  ;Setup patches
+  ;Have to manually hard code as patches cant have breeds unfortunately
+  ask patches [
+    set agent-incoming False
     ;set init-substrate localsubstrate
     ;first row
 
@@ -146,32 +127,29 @@ to setup
       set quadrant 16
 
     ]
-  ]
-  set local-substrate-start 500000
-  set sum-local-substrate 0
-  ask patches with [pcolor = 125] [
-    set localsubstrate local-substrate-start
-    set turtles-before 0
-    ;sprout floor (localsubstrate / 5) [
-    ;  set color 64
-    ;  set size 0
-    ;  set startX xcor
-    ;  set startY ycor
-    ;  set heading random 360
-    ;  set arrived 0 ;0 = No target, 1=on the way, 2=here
-    ;  pen-down
 
-    ;]
+
+
+
+
+
   ]
+
+
+
 
   create-turtles 7 [
     set color 64
     set size 0
-    setxy 0 0
+    setxy -50 45
     set startX xcor
     set startY ycor
     set heading random 360
+    set arrived 0 ;0 = No target, 1=on the way, 2=here
     pen-down
+  ]
+  ask turtles [
+    set visited []
   ]
 
 
@@ -181,10 +159,11 @@ to setup
   ;  setxy 0 0
   ;  set shape "square"
   ;]
-
-  set substrate 5000000
+  set substrate (sum [localsubstrate] of patches with [pcolor = 125])
+  set starting-substrate substrate
+  ;set substrate 5000000
   set avg-tip-rate 60
-  set branch-freq 0.1
+  set branch-freq 3
   set k-tip1 0.80
   set max-ktip 0.155
   set k-tip2 max-ktip - k-tip1
@@ -192,64 +171,86 @@ to setup
   set branch-angle 181
   set substrate-max 200
   set total-biomass 0
-  set substrate-factor 1 ;Test
+  set substrate-factor 0.1 ;Test
 
   reset-ticks
-  set rule-set "seeking"
-  set patch-rule-set "sixteen"
+  set rule-set "multiple-quad"
 
 end
 
-to sixteen
-   ask patches with [pcolor = 125] [
-    if localsubstrate > 0 [
-      set turtles-before turtles-before + count turtles-here ;this needs to be way higher
-      set localsubstrate localsubstrate - (turtles-before * 0.5)
 
-    ]
-    if quadrant = 6 [
-      print localsubstrate
-    ]
-    if localsubstrate < 0 [
-      set localsubstrate 0
-    ]
-    ;set sum-local-substrate sum-local-substrate + [localsubstrate] of self
-  ]
-  set sum-local-substrate sum [localsubstrate] of patches with [pcolor = 125]
-end
 
-to seeking
-  set branch-length distancexy startX startY
+to multiple-quad
 
-  if substrate > 0 [
-    fd extension-rate branch-length
 
-    ;set branch-length distancexy startX startY
-    ;set total-biomass ( sum [branch-length] of turtles )
-    ;set substrate substrate - min list (total-biomass * substrate-factor) substrate
+  if arrived = 0 [
+    let unvisited patches with [not member? self [visited] of myself]
+    let target-patches unvisited with [localsubstrate > 0 and agent-incoming = False]
+    ;ask patch-here [ set target-patches other target-patches]
+    ;set target-patches target-patches with [not member? self [visited] of myself]
 
-    if ( random 100 ) < branch-freq [
-      hatch 1 [
-        set size 0
-        set color 64
-        set startX xcor
-        set startY ycor
-        set branch-length distancexy startX startY ;Can just use distancexy
-        ;calc-length startX startY xcor ycor
-        set total-biomass ( sum [branch-length] of turtles ) ;
-        set substrate substrate - min list (total-biomass * substrate-factor) substrate
-        ;set color 7
-        ifelse random-float 1.0 < 0.5 [ left random 90 ][ right random 90 ]
-      ]
-    ]
-    let forward-patches patches in-cone seek-range seek-angle
-    ifelse forward-patches = NOBODY [
-      ifelse random-float 1.0 < 0.5 [ left random 45 ][ right random 45 ]
-      fd extension-rate branch-length
+    ;print target-patches
+    let target-patch  min-one-of target-patches[distance myself]
+    ;print target-patch
+    ifelse target-patch = NOBODY [
+
     ][
-    face max-one-of forward-patches [ localsubstrate ]
+    face target-patch
+    ask target-patch [
+        set agent-incoming True
+        set localsubstrate (localsubstrate - 1)
+      ]
+    set destination target-patch
+    set arrived 1
     ]
   ]
+
+  if patch-here = destination[
+    ask patch-here [
+
+      set agent-incoming False
+    ]
+    set arrived 0
+    set visited lput patch-here visited
+    set branch-length calc-length startX startY xcor ycor
+    set total-biomass total-biomass + branch-length
+    set startX xcor
+    set startY ycor
+    ;set last-destination destination
+
+  ]
+
+
+  if arrived = 1[
+    fd 1
+    set branch-length calc-length startX startY xcor ycor
+    ;if substrate > 0 [
+      ;fd 1
+
+      ;set branch-length calc-length startX startY xcor ycor
+
+      ;set substrate substrate - min list (total-biomass * substrate-factor) substrate
+
+      ;if ( random 100 ) < branch-freq [
+      ;  hatch 1 [
+      ;    set size 0
+      ;    set color 64
+      ;    set startX xcor
+      ;    set startY ycor
+      ;    set branch-length calc-length startX startY xcor ycor
+      ;    set total-biomass ( sum [branch-length] of turtles ) ; TODO  create quads, current quad, currentquad length, should be able to do
+      ;    set substrate substrate - min list (total-biomass * substrate-factor) substrate
+      ;    ;set color 7
+      ;    ifelse random-float 1.0 < 0.5 [ left random 90 ][ right random 90 ]
+      ;  ]
+      ;]
+
+
+      ;face max-one-of forward-patches [ localsubstrate ]
+    ;]
+  ]
+
+
 
 end
 
@@ -262,13 +263,13 @@ to-report calc-length [ orig-xcor orig-ycor cur-xcor cur-ycor ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-198
-19
-751
-573
+154
+25
+734
+606
 -1
 -1
-4.504132231405
+4.73
 1
 10
 1
@@ -306,10 +307,10 @@ NIL
 1
 
 BUTTON
-53
-99
-116
-132
+61
+101
+124
+134
 NIL
 go
 T
@@ -323,10 +324,10 @@ NIL
 1
 
 PLOT
-870
-463
-1302
-680
+1327
+468
+1759
+685
 Mean Branch Length
 Ticks
 Branch Length (um)
@@ -341,10 +342,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot mean [branch-length] of turtles"
 
 PLOT
-861
-20
-1270
-231
+750
+119
+1159
+330
 Total Substrate Avaiable
 Ticks
 Substrate (mg/L)
@@ -359,10 +360,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot substrate"
 
 PLOT
-861
-238
-1281
-451
+766
+373
+1186
+586
 Total Biomass
 Ticks
 Biomass
@@ -377,10 +378,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot total-biomass"
 
 PLOT
-1310
-32
-1668
-253
+1524
+10
+1882
+231
 plot 1
 Ticks
 Length, Tips
@@ -395,43 +396,13 @@ PENS
 "Total hyphal length" 1.0 0 -16777216 true "" "plot sum [branch-length] of turtles"
 "Total Hypal tips" 1.0 0 -2674135 true "" "plot count turtles"
 
-SLIDER
-7
-163
-179
-196
-seek-range
-seek-range
-0
-120
-10.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-11
-208
-183
-241
-seek-angle
-seek-angle
-1
-180
-60.0
-1
-1
-NIL
-HORIZONTAL
-
 MONITOR
-13
-261
-191
-306
-Gathered Substrate / Biomass
-substrate-ratio
+849
+43
+963
+88
+substrate/biomass
+substrate / total-biomass
 17
 1
 11

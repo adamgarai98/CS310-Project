@@ -5,6 +5,11 @@ patches-own [ quadrant localsubstrate ]
 
 to go
   ask turtles [ run rule-set ]
+  ask turtles [
+    set branch-length distancexy startX startY
+  ]
+  set total-biomass ( sum [branch-length] of turtles )
+  set substrate substrate - min list (total-biomass * substrate-factor) substrate
   if (substrate > 0 ) [ tick ]
 end
 
@@ -19,46 +24,6 @@ to setup
     set heading random 360
     pen-down
   ]
-
-;  ask patches [
-;    set localsubstrate 200000
-;
-;    if ( pxcor > 60 ) and ( pycor > 60 ) [
-;      set pcolor 125
-;    ]
-;    if ( pxcor > 20 ) and ( pxcor <= 60 ) and ( pycor > 60 ) [
-;      set pcolor 125
-;    ]
-;    if ( pxcor > -20 ) and ( pxcor <= 20 ) and ( pycor > 60 ) [
-;      set pcolor 128
-;    ]
-;    if ( pxcor > -60 ) and ( pxcor <= -20 ) and ( pycor > 60 ) [
-;      set pcolor 126
-;    ]
-;    if ( pxcor >= -100 ) and ( pxcor <= -60 ) and ( pycor > 60 ) [
-;      set pcolor 127
-;    ]
-;
-;
-;
-;    if ( pxcor > 60 ) and ( pycor > 20 ) and ( pycor <= 60 ) [
-;      set pcolor 123
-;    ]
-;    if ( pxcor > 20 ) and ( pxcor <= 60 ) and ( pycor > 20 ) and ( pycor <= 60 ) [
-;      set pcolor 122
-;    ]
-;
-;
-;
-;  ]
-
-
-  ;create-turtles 1 [
-  ;  set color lime
-  ;  set size 450
-  ;  setxy 0 0
-  ;  set shape "square"
-  ;]
 
   set substrate 5000000
   set avg-tip-rate 60
@@ -82,9 +47,9 @@ to one-quad
   if substrate > 0 [
     fd extension-rate branch-length
 
-    set branch-length distancexy startX startY
-    set total-biomass ( sum [branch-length] of turtles )
-    set substrate substrate - min list (total-biomass * substrate-factor) substrate
+    ;set branch-length distancexy startX startY
+    ;set total-biomass ( sum [branch-length] of turtles )
+    ;set substrate substrate - min list (total-biomass * substrate-factor) substrate
 
     if ( random 100 ) < branch-freq [
       hatch 1 [

@@ -1,21 +1,23 @@
-globals [ rule-set substrate avg-tip-rate branch-freq k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor]
+globals [ rule-set total-bandwidth torrent-size bandwidth-share ]
+breed [ seeders seed ]
+breed [ leechers leech ]
+
+leechers-own [ download-bandwidth upload-bandwidth percent-done ]
+seeders-own [ upload-bandwidth ]
 ;patches-own [ substrate ]
 turtles-own [ startX startY branch-length ]
-patches-own [ quadrant localsubstrate ]
 
 to go
-  ask turtles [ run rule-set ]
-  ask turtles [
+  set total-bandwidth ( sum [upload-bandwidth] of leechers ) + ( sum [upload-bandwidth] of seeders )
+  set bandwidth-share total-bandwidth / ( count leechers)
+  ask leechers [ run "leech-rules" ]
+  ask leechers [
     set branch-length distancexy startX startY
   ]
-  set total-biomass ( sum [branch-length] of turtles )
-  set substrate substrate - min list (total-biomass * substrate-factor) substrate
-  if (substrate > 0 ) [ tick ]
-end
 
-to setup
-  clear-all
-  create-turtles 7 [
+  create-leechers (ceiling (count seeders / 12) )[
+    set download-bandwidth (25 + random 51 ) / 10
+    set upload-bandwidth (5 + random 11) / 10
     set color 64
     set size 0
     setxy 0 0
@@ -25,53 +27,89 @@ to setup
     pen-down
   ]
 
-  set substrate 5000000
-  set avg-tip-rate 60
-  set branch-freq 3
-  set k-tip1 0.80
-  set max-ktip 0.155
-  set k-tip2 max-ktip - k-tip1
-  set growth-max 0.05
-  set branch-angle 181
-  set substrate-max 200
-  set total-biomass 0
-  set substrate-factor 0.1 ;Test
+  ;set total-biomass ( sum [branch-length] of turtles )
+  ;set substrate substrate - min list (total-biomass * substrate-factor) substrate
+  ;if (substrate > 0 ) [ tick ]
+  tick
+end
+
+to setup
+  clear-all
+ ; create-turtles 7 [
+ ;   set color 64
+ ;   set size 0
+ ;   setxy 0 0
+ ;   set startX 0
+ ;   set startY 0
+ ;   set heading random 360
+ ;   pen-down
+ ; ]
+
+  create-leechers 2 [
+    set download-bandwidth (25 + random 51 ) / 10
+    set upload-bandwidth (5 + random 11) / 10
+    set color 64
+    set size 0
+    setxy 0 0
+    set startX 0
+    set startY 0
+    set heading random 360
+    pen-down
+  ]
+
+  create-seeders 5 [
+    set upload-bandwidth (5 + random 11) / 10
+    set size 0
+  ]
+
+  set torrent-size 10
 
   reset-ticks
   set rule-set "one-quad"
 end
 
-to one-quad
+to leech-rules
   set branch-length distancexy startX startY
+  ifelse branch-length <= torrent-size [
+    fd min list download-bandwidth bandwidth-share
+  ][
+    if ( random 100 < 50 ) [
+      hatch-seeders 1 [
+        set upload-bandwidth (5 + random 11) / 10
+        set size 0
+      ]
+    ]
+    die
+  ]
 
-  if substrate > 0 [
-    fd extension-rate branch-length
+  ;if substrate > 0 [
+  ;  fd extension-rate branch-length
 
     ;set branch-length distancexy startX startY
     ;set total-biomass ( sum [branch-length] of turtles )
     ;set substrate substrate - min list (total-biomass * substrate-factor) substrate
 
-    if ( random 100 ) < branch-freq [
-      hatch 1 [
-        set size 0
-        set color 64
-        set startX xcor
-        set startY ycor
-        set branch-length distancexy startX startY ;Can just use distancexy
-        ;calc-length startX startY xcor ycor
-        set total-biomass ( sum [branch-length] of turtles ) ;
-        set substrate substrate - min list (total-biomass * substrate-factor) substrate
-        ;set color 7
-        ifelse random-float 1.0 < 0.5 [ left random 90 ][ right random 90 ]
-      ]
-    ]
-  ]
+    ;if ( random 100 ) < branch-freq [
+    ;  hatch 1 [
+    ;    set size 0
+    ;    set color 64
+    ;    set startX xcor
+    ;    set startY ycor
+    ;    set branch-length distancexy startX startY ;Can just use distancexy
+    ;    ;calc-length startX startY xcor ycor
+    ;    set total-biomass ( sum [branch-length] of turtles ) ;
+    ;    set substrate substrate - min list (total-biomass * substrate-factor) substrate
+    ;    ;set color 7
+    ;    ifelse random-float 1.0 < 0.5 [ left random 90 ][ right random 90 ]
+    ;  ]
+    ;]
+  ;]
 
 end
 
-to-report extension-rate [ blength ]
-  report ( ( k-tip1 + k-tip2 * ( blength / ( blength + growth-max ) ) ) * ( substrate / ( substrate + substrate-max ) ) )
-end
+;to-report extension-rate [ blength ]
+;  report ( ( k-tip1 + k-tip2 * ( blength / ( blength + growth-max ) ) ) * ( substrate / ( substrate + substrate-max ) ) )
+;end
 
 to-report calc-length [ orig-xcor orig-ycor cur-xcor cur-ycor ]
   report sqrt ( ( cur-xcor - orig-xcor ) ^ 2  + ( cur-ycor - orig-ycor ) ^ 2 )
@@ -105,10 +143,10 @@ ticks
 30.0
 
 BUTTON
-13
-48
-76
-81
+54
+47
+117
+80
 NIL
 setup
 NIL
@@ -122,10 +160,10 @@ NIL
 1
 
 BUTTON
-10
-92
-73
-125
+61
+101
+124
+134
 NIL
 go
 T
@@ -154,7 +192,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot mean [branch-length] of turtles"
+"default" 1.0 0 -16777216 true "" "plot mean [branch-length] of leechers"
 
 PLOT
 801
@@ -163,7 +201,7 @@ PLOT
 240
 Total Substrate Avaiable
 Ticks
-Substrate
+Substrate (mg/L)
 0.0
 10.0
 0.0
@@ -172,14 +210,14 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot substrate"
+"default" 1.0 0 -16777216 true "" "plot bandwidth-share"
 
 PLOT
 801
 247
 1221
 460
-Total Biomass
+Total Bandwidth
 Ticks
 Biomass
 0.0
@@ -190,7 +228,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot total-biomass"
+"default" 1.0 0 -16777216 true "" "plot total-bandwidth"
 
 PLOT
 1250
@@ -208,8 +246,8 @@ true
 true
 "" ""
 PENS
-"Total hyphal length" 1.0 0 -16777216 true "" "plot sum [branch-length] of turtles"
-"Total Hypal tips" 1.0 0 -2674135 true "" "plot count turtles"
+"No. of seeders" 1.0 0 -16777216 true "" "plot count seeders"
+"No. of leechers" 1.0 0 -2674135 true "" "plot count leechers"
 
 @#$#@#$#@
 ## WHAT IS IT?

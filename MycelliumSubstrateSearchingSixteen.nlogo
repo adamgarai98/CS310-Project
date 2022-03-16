@@ -1,33 +1,197 @@
-globals [ rule-set substrate avg-tip-rate branch-freq k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor]
+globals [ rule-set patch-rule-set substrate avg-tip-rate k-tip1 max-ktip k-tip2 branch-angle substrate-max growth-max total-biomass substrate-factor local-substrate-start ls-start-real sum-local-substrate substrate-ratio second-ratio]
 ;patches-own [ substrate ]
-turtles-own [ startX startY branch-length ]
-patches-own [ quadrant localsubstrate ]
+turtles-own [ prevX prevY branch-length ]
+patches-own [ quadrant localsubstrate turtles-before ]
 
 to go
-  ask turtles [ run rule-set ]
-  ask turtles [
-    set branch-length distancexy startX startY
+  if ticks = 0 [
+    reset-timer
+    set ls-start-real sum [localsubstrate] of patches with [pcolor = 125]
   ]
+  ask turtles [ run rule-set ]
+  ;ask turtles [
+  ;  set branch-length distancexy prevX prevY
+  ;]
   set total-biomass ( sum [branch-length] of turtles )
   set substrate substrate - min list (total-biomass * substrate-factor) substrate
+
+
+
+  set sum-local-substrate 0
+  ask patches with [pcolor = 125] [
+    run patch-rule-set
+
+  ]
+  set substrate-ratio ( ( ls-start-real ) - sum-local-substrate) / ( total-biomass + 1 )
+  set second-ratio substrate-ratio / (sum-local-substrate + 1 )
+  ;print "substrate ratio"
+  ;print substrate-ratio
+  ;print "sum local sub"
+  ;print sum-local-substrate
+  ;print "total biomass"
+  ;print total-biomass
+  ;print "sub-start"
+  ;print ( local-substrate-start * 16 )
+
+
+
+
   if (substrate > 0 ) [ tick ]
+  if substrate <= 0 [stop]
+  if sum-local-substrate <= 0 [stop]
+  ;if ticks >= 1000 [stop]
 end
 
 to setup
   clear-all
+
+  ask patches [
+
+    ;set init-substrate localsubstrate
+    ;first row
+
+    if ( pxcor = -50 ) and ( pycor = 45 )  [
+      set pcolor 125
+      set quadrant 1
+
+    ]
+
+    if ( pxcor = -20 ) and ( pycor = 45 )  [
+      set pcolor 125
+      set quadrant 2
+
+    ]
+
+    if ( pxcor = 20 ) and ( pycor = 45 )  [
+      set pcolor 125
+      set quadrant 3
+
+    ]
+
+    if ( pxcor = 50 ) and ( pycor = 45 )  [
+      set pcolor 125
+      set quadrant 4
+
+    ]
+
+    ;2nd row
+
+    if ( pxcor = -40 ) and ( pycor = 15 )  [
+      set pcolor 125
+      set quadrant 5
+
+    ]
+
+    if ( pxcor = -10 ) and ( pycor = 15 )  [
+      set pcolor 125
+      set quadrant 6
+
+    ]
+
+    if ( pxcor = 10 ) and ( pycor = 15 )  [
+      set pcolor 125
+      set quadrant 7
+
+    ]
+
+    if ( pxcor = 40 ) and ( pycor = 15 )  [
+      set pcolor 125
+      set quadrant 8
+
+    ]
+
+
+    ;3rd row
+
+    if ( pxcor = -50 ) and ( pycor = -15 )  [
+      set pcolor 125
+      set quadrant 9
+
+    ]
+
+    if ( pxcor = -20 ) and ( pycor = -15 )  [
+      set pcolor 125
+      set quadrant 10
+
+    ]
+
+    if ( pxcor = 20 ) and ( pycor = -15 )  [
+      set pcolor 125
+      set quadrant 11
+
+    ]
+
+    if ( pxcor = 50 ) and ( pycor = -15 )  [
+      set pcolor 125
+      set quadrant 12
+
+    ]
+
+
+    ;4th row
+
+    if ( pxcor = -40 ) and ( pycor = -45 )  [
+      set pcolor 125
+      set quadrant 13
+
+    ]
+
+    if ( pxcor = -10 ) and ( pycor = -45 )  [
+      set pcolor 125
+      set quadrant 14
+
+    ]
+
+    if ( pxcor = 10 ) and ( pycor = -45 )  [
+      set pcolor 125
+      set quadrant 15
+
+    ]
+
+    if ( pxcor = 40 ) and ( pycor = -45 )  [
+      set pcolor 125
+      set quadrant 16
+
+    ]
+  ]
+  set local-substrate-start 500000
+  set sum-local-substrate 0
+  ask patches with [pcolor = 125] [
+    set localsubstrate local-substrate-start + random 500
+    set turtles-before 0
+    ;sprout floor (localsubstrate / 5) [
+    ;  set color 64
+    ;  set size 0
+    ;  set prevX xcor
+    ;  set prevY ycor
+    ;  set heading random 360
+    ;  set arrived 0 ;0 = No target, 1=on the way, 2=here
+    ;  pen-down
+
+    ;]
+  ]
+
   create-turtles 7 [
     set color 64
     set size 0
     setxy 0 0
-    set startX 0
-    set startY 0
+    set prevX xcor
+    set prevY ycor
     set heading random 360
     pen-down
   ]
 
+
+  ;create-turtles 1 [
+  ;  set color lime
+  ;  set size 450
+  ;  setxy 0 0
+  ;  set shape "square"
+  ;]
+
   set substrate 5000000
   set avg-tip-rate 60
-  set branch-freq 3
+  ;set branch-freq 3
   set k-tip1 0.80
   set max-ktip 0.155
   set k-tip2 max-ktip - k-tip1
@@ -35,19 +199,38 @@ to setup
   set branch-angle 181
   set substrate-max 200
   set total-biomass 0
-  set substrate-factor 0.1 ;Test
+  set substrate-factor 1 ;Test
 
   reset-ticks
-  set rule-set "one-quad"
+  set rule-set "seeking"
+  set patch-rule-set "sixteen"
+
 end
 
-to one-quad
-  set branch-length distancexy startX startY
+to sixteen
+   ask patches with [pcolor = 125] [
+    if localsubstrate > 0 [
+      set turtles-before turtles-before + count turtles-here ;this needs to be way higher
+      set localsubstrate localsubstrate - (turtles-before * 0.2)
+
+    ]
+    if localsubstrate < 0 [
+      set localsubstrate 0
+    ]
+    ;set sum-local-substrate sum-local-substrate + [localsubstrate] of self
+  ]
+  set sum-local-substrate sum [localsubstrate] of patches with [pcolor = 125]
+end
+
+to seeking
+  set branch-length branch-length + distancexy prevX prevY
+  set prevX xcor
+  set prevY ycor
 
   if substrate > 0 [
     fd extension-rate branch-length
 
-    ;set branch-length distancexy startX startY
+    ;set branch-length distancexy prevX prevY
     ;set total-biomass ( sum [branch-length] of turtles )
     ;set substrate substrate - min list (total-biomass * substrate-factor) substrate
 
@@ -55,14 +238,29 @@ to one-quad
       hatch 1 [
         set size 0
         set color 64
-        set startX xcor
-        set startY ycor
-        set branch-length distancexy startX startY ;Can just use distancexy
-        ;calc-length startX startY xcor ycor
-        set total-biomass ( sum [branch-length] of turtles ) ;
-        set substrate substrate - min list (total-biomass * substrate-factor) substrate
+        set prevX xcor
+        set prevY ycor
+        set branch-length distancexy prevX prevY ;Can just use distancexy
+        ;calc-length prevX prevY xcor ycor
+        ;set total-biomass ( sum [branch-length] of turtles ) ;
+        ;set substrate substrate - min list (total-biomass * substrate-factor) substrate
         ;set color 7
         ifelse random-float 1.0 < 0.5 [ left random 90 ][ right random 90 ]
+      ]
+    ]
+
+    ifelse xcor > 70 or xcor < -70 or ycor > 70 or ycor < -70 [
+      face patch 0 0
+    ]
+    [
+    let forward-patches patches in-cone seek-range seek-angle
+    if forward-patches = NOBODY [
+      ifelse random-float 1.0 < 0.5 [ left random 45 ][ right random 45 ]
+      fd extension-rate branch-length
+    ]
+    if forward-patches != NOBODY
+      [
+        face max-one-of forward-patches [ localsubstrate ]
       ]
     ]
   ]
@@ -78,13 +276,13 @@ to-report calc-length [ orig-xcor orig-ycor cur-xcor cur-ycor ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-150
-25
-781
-657
+284
+30
+821
+568
 -1
 -1
-4.13
+3.29
 1
 10
 1
@@ -94,10 +292,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--75
-75
--75
-75
+-80
+80
+-80
+80
 1
 1
 1
@@ -105,10 +303,10 @@ ticks
 30.0
 
 BUTTON
-13
-48
-76
-81
+54
+47
+117
+80
 NIL
 setup
 NIL
@@ -122,10 +320,10 @@ NIL
 1
 
 BUTTON
-10
-92
-73
-125
+53
+99
+116
+132
 NIL
 go
 T
@@ -139,10 +337,10 @@ NIL
 1
 
 PLOT
-810
-472
-1242
-689
+870
+463
+1302
+680
 Mean Branch Length
 Ticks
 Branch Length (um)
@@ -157,13 +355,13 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot mean [branch-length] of turtles"
 
 PLOT
-801
-29
-1210
-240
+861
+20
+1270
+231
 Total Substrate Avaiable
 Ticks
-Substrate
+Substrate (mg/L)
 0.0
 10.0
 0.0
@@ -175,10 +373,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot substrate"
 
 PLOT
-801
-247
-1221
-460
+861
+238
+1281
+451
 Total Biomass
 Ticks
 Biomass
@@ -193,10 +391,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot total-biomass"
 
 PLOT
-1250
-41
-1608
-262
+1310
+32
+1668
+253
 plot 1
 Ticks
 Length, Tips
@@ -210,6 +408,95 @@ true
 PENS
 "Total hyphal length" 1.0 0 -16777216 true "" "plot sum [branch-length] of turtles"
 "Total Hypal tips" 1.0 0 -2674135 true "" "plot count turtles"
+
+SLIDER
+11
+544
+183
+577
+seek-range
+seek-range
+0
+120
+20.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+11
+505
+183
+538
+seek-angle
+seek-angle
+1
+359
+60.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+20
+149
+198
+194
+Gathered Substrate / Biomass
+substrate-ratio
+17
+1
+11
+
+SLIDER
+12
+468
+184
+501
+branch-freq
+branch-freq
+0
+5
+2.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+213
+149
+270
+194
+NIL
+timer
+17
+1
+11
+
+MONITOR
+18
+206
+188
+251
+Local substrate left
+sum-local-substrate
+17
+1
+11
+
+MONITOR
+23
+265
+161
+310
+NIL
+second-ratio
+10
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -557,6 +844,46 @@ NetLogo 6.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>substrate-ratio</metric>
+    <enumeratedValueSet variable="seek-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="seek-angle">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="branch-freq">
+      <value value="1"/>
+      <value value="2"/>
+      <value value="3"/>
+      <value value="4"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>substrate-ratio</metric>
+    <metric>timer</metric>
+    <enumeratedValueSet variable="seek-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="seek-angle">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="branch-freq">
+      <value value="0"/>
+      <value value="1"/>
+      <value value="2"/>
+      <value value="3"/>
+      <value value="4"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
